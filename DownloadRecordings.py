@@ -23,12 +23,16 @@ tapo = Tapo(host, "admin", password_cloud, password_cloud)
 async def download_async():
     global output_dir
     print("Getting recordings...")
-    # make sure output dir exists
-    if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
-        exit("ERROR: Output directory does not exist.")
+    if not output_dir or not os.path.exists(output_dir) or not os.path.isdir(output_dir):
+        exit("ERROR: OUTPUT must be set and directory must exist")
 
     if output_dir[-1] != "/":
         output_dir = output_dir + "/"
+
+    if start_datetime is None or len(start_datetime) == 0:
+        exit("ERROR: START_DATETIME must be set")
+    if end_datetime is None or len(end_datetime) == 0:
+        exit("ERROR: END_DATETIME must be set")
 
     # parse start and end dates into datetime objects
     start = datetime.datetime.strptime(start_datetime, "%Y-%m-%dT%H:%M:%S")
@@ -36,10 +40,10 @@ async def download_async():
     # format date to get YYYYMMDD string
     date = start.strftime("%Y%m%d")
     while end <= start:
-        exit("ERROR: End date cannot be before start date.")
+        exit("ERROR: End date cannot be before start date")
 
     if window_size is None or len(window_size) == 0:
-        print("Using default window size: 50 seconds.")
+        print("Using default window size: 50 seconds")
         window_size = 50
     
     recordings = tapo.getRecordings(date)
