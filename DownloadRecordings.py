@@ -2,10 +2,12 @@ from pytapo import Tapo
 from pytapo.media_stream.downloader import Downloader
 import asyncio
 import os
+import datetime
 
 # mandatory
-outputDir = os.environ.get("OUTPUT")  # directory path where videos will be saved
-date = os.environ.get("DATE")  # date to download recordings for in format YYYYMMDD
+output_dir = os.environ.get("OUTPUT")  # directory path where videos will be saved
+start_datetime = os.environ.get("START_DATETIME")  # start date in format YYYY-MM-DDTHH:MM:SS
+end_datetime = os.environ.get("END_DATETIME")  # end date in format YYYY-MM-DDTHH:MM:SS
 host = os.environ.get("HOST")  # change to camera IP
 password_cloud = os.environ.get("PASSWORD_CLOUD")  # set to your cloud password
 
@@ -20,16 +22,42 @@ tapo = Tapo(host, "admin", password_cloud, password_cloud)
 
 async def download_async():
     print("Getting recordings...")
+    # make sure output dir exists
+    if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
+        exit("ERROR: Output directory does not exist.")
+
+    if output_dir[-1] != "/":
+        output_dir = output_dir + "/"
+
+    # parse start and end dates into datetime objects
+    start = datetime.datetime.strptime(start_datetime, "%Y-%m-%dT%H:%M:%S")
+    end = datetime.datetime.strptime(end_datetime, "%Y-%m-%dT%H:%M:%S")
+    # format date to get YYYYMMDD string
+    date = start.strftime("%Y%m%d")
+    while end <= start:
+        exit("ERROR: End date cannot be before start date.")
+
+    if window_size is None or len(window_size) == 0:
+        print("Using default window size: 50 seconds.")
+        window_size = 50
+    
     recordings = tapo.getRecordings(date)
     timeCorrection = tapo.getTimeCorrection()
     for recording in recordings:
         for key in recording:
+            # parse unix epoch
+            startTime = datetime.datetime.fromtimestamp(int(recording[key]["startTime"]))
+            endTime = datetime.datetime.fromtimestamp(int(recording[key]["endTime"]))
+            if startTime > end or endTime < start:
+                print(f'Skipping recording: {key}, out of time range, is {startTime} - {endTime}')
+                continue
+ 
             downloader = Downloader(
                 tapo,
                 recording[key]["startTime"],
                 recording[key]["endTime"],
                 timeCorrection,
-                outputDir,
+                output_dir,
                 None,
                 False,
                 window_size,
