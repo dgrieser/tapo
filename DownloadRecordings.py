@@ -21,6 +21,7 @@ tapo = Tapo(host, "admin", password_cloud, password_cloud)
 
 
 async def download_async():
+    global output_dir
     print("Getting recordings...")
     # make sure output dir exists
     if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
